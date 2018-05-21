@@ -1,0 +1,41 @@
+#!/usr/bin/python
+
+import subprocess
+import re
+import sys
+import copy
+import getopt
+
+def run (cmd):
+  p = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  return iter (p.stdout.readline, b'')
+
+zone_list = []
+no_header = False
+optlist, args = getopt.getopt (sys.argv[1:], 'n', ['noheader'])
+for opt, a in optlist:
+  if opt in ('-n', '--noheader'):
+    no_header = True
+for line in run ('/usr/bin/isi zone list'.split()):
+  if re.match (r'^-----', line, re.M):
+    continue
+  lf = line.split()
+  if lf[0] == "Name" or lf[0] == "Total:":
+    continue
+  zone_list.append (lf[0])
+sys.argv.pop(0)
+if no_header == True:
+  sys.argv.pop(0)
+for zone in zone_list:
+  if no_header == True:
+    print "Zone: " + zone
+  zone_str = "--zone="+zone
+  cmd_copy = copy.deepcopy(sys.argv)
+  cmd_copy.append (zone_str)
+#  print str (cmd_copy)
+  for line in run (cmd_copy):
+    if (no_header == False):
+      sys.stdout.write (zone + ": " + line)
+    else:
+      sys.stdout.write (line)
+
